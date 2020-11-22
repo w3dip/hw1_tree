@@ -19,7 +19,7 @@ func filter(arr []os.FileInfo, cond func(os.FileInfo) bool) []os.FileInfo {
 	return result
   }
 
-func walk(out io.Writer, path string, printFiles bool, level int, parentIsLast bool) error {
+func walk(out io.Writer, path string, printFiles bool, level int, parentIsLast bool, parentPrefix string) error {
 	file, _ := os.Open(path)
 	var items, _ = file.Readdir(0)
 	if !printFiles {
@@ -36,6 +36,12 @@ func walk(out io.Writer, path string, printFiles bool, level int, parentIsLast b
 		return items[i].Name() < items[j].Name()
 	})
 
+	if parentIsLast {
+		parentPrefix += "\t"
+	} else if level > 0 {
+		parentPrefix += "│\t"
+	}
+
 	level++
 	
 	for indx, item := range items {
@@ -44,9 +50,10 @@ func walk(out io.Writer, path string, printFiles bool, level int, parentIsLast b
 		isLastItem := indx == len(items) - 1
 		
 		var prefix string
-		for i := 1; i < level; i++ {
-			prefix += "\t"
-		}
+		// for i := 1; i < level; i++ {
+		// 	prefix += "\t"
+		// }
+		prefix += parentPrefix
 		if isLastItem {
 			prefix += "└───"
 		} else {
@@ -66,13 +73,13 @@ func walk(out io.Writer, path string, printFiles bool, level int, parentIsLast b
 			continue
 		}
 		fmt.Fprintf(out, "%s %s\n", prefix, name)
-		walk(out, filepath.Join(path, name), printFiles, level, isLastItem)
+		walk(out, filepath.Join(path, name), printFiles, level, isLastItem, parentPrefix)
 	}
 	return nil
 }
 
 func dirTree(out io.Writer, path string, printFiles bool) error {
-	return walk(out, path, printFiles, 0, false)
+	return walk(out, path, printFiles, 0, false, "")
 }
 
 func main() {
