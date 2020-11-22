@@ -50,9 +50,6 @@ func walk(out io.Writer, path string, printFiles bool, level int, parentIsLast b
 		isLastItem := indx == len(items) - 1
 		
 		var prefix string
-		// for i := 1; i < level; i++ {
-		// 	prefix += "\t"
-		// }
 		prefix += parentPrefix
 		if isLastItem {
 			prefix += "└───"
@@ -68,11 +65,11 @@ func walk(out io.Writer, path string, printFiles bool, level int, parentIsLast b
 				} else {
 					size = fmt.Sprintf("%vb", item.Size())
 				}
-				fmt.Fprintf(out, "%s %s (%s)\n", prefix, name, size)
+				fmt.Fprintf(out, "%s%s (%s)\n", prefix, name, size)
 			}
 			continue
 		}
-		fmt.Fprintf(out, "%s %s\n", prefix, name)
+		fmt.Fprintf(out, "%s%s\n", prefix, name)
 		walk(out, filepath.Join(path, name), printFiles, level, isLastItem, parentPrefix)
 	}
 	return nil
