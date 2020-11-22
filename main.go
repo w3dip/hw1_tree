@@ -6,7 +6,74 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sort"
 )
+
+func filter(arr []os.FileInfo, cond func(os.FileInfo) bool) []os.FileInfo {
+	result := []os.FileInfo{}
+	for i := range arr {
+	  if cond(arr[i]) {
+		 result = append(result, arr[i])
+	  }
+	}
+	return result
+  }
+
+func walk(out io.Writer, path string, printFiles bool, level int, parentIsLast bool) error {
+	file, _ := os.Open(path)
+	var items, _ = file.Readdir(0)
+	if !printFiles {
+		items = filter(items, func(val os.FileInfo) bool {
+			return val.IsDir()
+		})
+	}
+
+	items = filter(items, func(val os.FileInfo) bool {
+		return !strings.HasPrefix(val.Name(), ".")
+	})
+
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].Name() < items[j].Name()
+	})
+
+	level++
+	
+	for indx, item := range items {
+		name := item.Name()
+		isDir := item.IsDir()
+		isLastItem := indx == len(items) - 1
+		
+		var prefix string
+		for i := 1; i < level; i++ {
+			prefix += "\t"
+		}
+		if isLastItem {
+			prefix += "└───"
+		} else {
+			prefix += "├───"
+		}
+
+		if !isDir {
+			if printFiles {
+				var size string
+				if item.Size() == 0 {
+					size = "empty"
+				} else {
+					size = fmt.Sprintf("%vb", item.Size())
+				}
+				fmt.Fprintf(out, "%s %s (%s)\n", prefix, name, size)
+			}
+			continue
+		}
+		fmt.Fprintf(out, "%s %s\n", prefix, name)
+		walk(out, filepath.Join(path, name), printFiles, level, isLastItem)
+	}
+	return nil
+}
+
+func dirTree(out io.Writer, path string, printFiles bool) error {
+	return walk(out, path, printFiles, 0, false)
+}
 
 func main() {
 	out := os.Stdout
